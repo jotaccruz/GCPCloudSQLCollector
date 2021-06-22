@@ -128,3 +128,24 @@ dmypy.json
 # Pyre type checker
 .pyre/
 ti-is-devenv-01-e494bc35aeae.json
+GCPSQLAutoIn/pyvenv.cfg
+GCPSQLAutoIn/Scripts/activate
+GCPSQLAutoIn/Scripts/Activate.ps1
+GCPSQLAutoIn/Scripts/activate.bat
+GCPSQLAutoIn/Scripts/chardetect.exe
+GCPSQLAutoIn/Scripts/easy_install.exe
+GCPSQLAutoIn/Scripts/deactivate.bat
+GCPSQLAutoIn/Scripts/easy_install-3.8.exe
+GCPSQLAutoIn/Scripts/pip3.exe
+GCPSQLAutoIn/Scripts/pip3.8.exe
+GCPSQLAutoIn/Scripts/pip.exe
+GCPSQLAutoIn/Scripts/f2py.exe
+GCPSQLAutoIn/Scripts/pyrsa-verify.exe
+GCPSQLAutoIn/Scripts/pyrsa-sign.exe
+GCPSQLAutoIn/Scripts/pyrsa-priv2pub.exe
+GCPSQLAutoIn/Scripts/pyrsa-keygen.exe
+GCPSQLAutoIn/Scripts/pyrsa-decrypt.exe
+GCPSQLAutoIn/Scripts/pythonw.exe
+GCPSQLAutoIn/Scripts/pyrsa-encrypt.exe
+GCPSQLAutoIn/Scripts/python.exe
+pyvenv.cfg

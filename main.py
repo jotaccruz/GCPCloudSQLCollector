@@ -1,5 +1,5 @@
 #Service Account: mssql-restore-test@ti-is-devenv-01.iam.gserviceaccount.com
-#SET GOOGLE_APPLICATION_CREDENTIALS=C:\PHome\GCPSQLAutoIn\ti-is-devenv-01-e494bc35aeae.json
+#SET GOOGLE_APPLICATION_CREDENTIALS=C:\PHome\GCPSQLAutoIn\jsonfiles2Fti-ca-infrastructure.json
 import argparse
 from googleapiclient.discovery import build
 import pandas as pd

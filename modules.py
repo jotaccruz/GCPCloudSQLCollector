@@ -23,20 +23,22 @@ def list_projects(compute):
 def list_sql_instances(cloudsql,projectname):
     req = cloudsql.instances().list(project=projectname)
     resp = req.execute()
-    sqlinstances = []
 
-    for instances in resp['items']:
-        sqlinstance = {}
-        sqlinstance['NAME'] = instances['name']
-        sqlinstance['STATUS'] = instances['state']
-        sqlinstance['DATABASE_VERSION'] = instances['databaseVersion']
-        sqlinstance['LOCATION'] = instances['region']
-        for ips in instances['ipAddresses']:
-            if ips['type']=='PRIMARY':
-                sqlinstance['PRIMARY_ADDRESS'] = ips['ipAddress']
-            if ips['type']=='PRIVATE':
-                sqlinstance['PRIVATE_ADDRESS'] = ips['ipAddress']
-        sqlinstances.append(sqlinstance)
+    if 'error' not in resp:
+        sqlinstances = []
+
+        for instances in resp['items']:
+            sqlinstance = {}
+            sqlinstance['NAME'] = instances['name']
+            sqlinstance['STATUS'] = instances['state']
+            sqlinstance['DATABASE_VERSION'] = instances['databaseVersion']
+            sqlinstance['LOCATION'] = instances['region']
+            for ips in instances['ipAddresses']:
+                if ips['type']=='PRIMARY':
+                    sqlinstance['PRIMARY_ADDRESS'] = ips['ipAddress']
+                if ips['type']=='PRIVATE':
+                    sqlinstance['PRIVATE_ADDRESS'] = ips['ipAddress']
+            sqlinstances.append(sqlinstance)
     #https://cloud.google.com/sql/docs/sqlserver/import-export/importing
     #add_bucket_iam_member("dba-freenas","roles/storage.admin","serviceAccount:" + EmailAddress)
     return sqlinstances
@@ -47,15 +49,17 @@ def list_sql_instances(cloudsql,projectname):
 def list_sql_instance_databases(cloudsql,projectName,instanceName):
     req = cloudsql.databases().list(project=projectName,instance=instanceName)
     resp = req.execute()
+    print (resp)
     sqlDatabases = []
 
-    for databases in resp['items']:
-        sqlDatabase = {}
+    if 'error' not in resp:
+        for databases in resp['items']:
+            sqlDatabase = {}
 
-        sqlDatabase['INSTANCE'] = databases['instance']
-        sqlDatabase['NAME'] = databases['name']
+            sqlDatabase['INSTANCE'] = databases['instance']
+            sqlDatabase['NAME'] = databases['name']
 
-        sqlDatabases.append(sqlDatabase)
+            sqlDatabases.append(sqlDatabase)
     return sqlDatabases
 # [END list_sql_instance_databases]
 
@@ -114,3 +118,21 @@ def readFileFromOS(filename):
         data=file.read()
     return data
 # [END readFileFromOS]
+
+
+# [START wait_for_operation]
+def wait_for_operation(cloudsql, project, operation):
+    print('Waiting for operation to finish...')
+    while True:
+        result = cloudsql.operations().get(
+            project=project,
+            operation=operation).execute()
+
+        if result['status'] == 'DONE':
+            print("done.")
+            if 'error' in result:
+                raise Exception(result['error'])
+            return result
+        time.sleep(1)
+# [END wait_for_operation]
+# wait_for_operation(cloudsql, "ti-is-devenv-01", operation)
