@@ -149,3 +149,10 @@ GCPSQLAutoIn/Scripts/pythonw.exe
 GCPSQLAutoIn/Scripts/pyrsa-encrypt.exe
 GCPSQLAutoIn/Scripts/python.exe
 pyvenv.cfg
+AutoInventory/Include/site/python3.9/greenlet/greenlet.h
+AutoInventory/Scripts/activate
+AutoInventory/Scripts/Activate.ps1
+AutoInventory/Scripts/activate.bat
+*.exe
+*.bat
+*.json

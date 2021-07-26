@@ -1,0 +1,70 @@
+<!--
+Copyright 2018 Google LLC
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+-->
+<html lang="en">
+<head>
+    <title>Telus International</title>
+    <link rel="stylesheet"
+          href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/js/materialize.min.js"></script>
+</head>
+<body>
+<nav class="red lighten-1">
+    <div class="nav-wrapper">
+        <a href="#" class="brand-logo center">Global Database Inventory</a>
+    </div>
+</nav>
+<div class="section">
+    <div class="center">
+        <h4>
+        </h4>
+    </div>
+    <div class="row center">
+        <div class="col s6 m5 offset-m1">
+
+        </div>
+        <div class="col s6 m5">
+
+        </div>
+    </div>
+    <h4 class="header center">Recent Votes</h4>
+    <ul class="container collection center">
+    </ul>
+</div>
+<script>
+    function vote(team) {
+        var xhr = new XMLHttpRequest();
+        xhr.onreadystatechange = function () {
+            if (this.readyState == 4) {
+                if (!window.alert(this.responseText)) {
+                    window.location.reload();
+                }
+            }
+        };
+        xhr.open("POST", "/", true);
+        xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+        xhr.send("team=" + team);
+    }
+
+    document.getElementById("voteTabs").addEventListener("click", function () {
+        vote("TABS");
+    });
+    document.getElementById("voteSpaces").addEventListener("click", function () {
+        vote("SPACES");
+    });
+</script>
+</body>
+</html>
