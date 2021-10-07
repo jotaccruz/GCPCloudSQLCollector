@@ -16,6 +16,9 @@
 #Service Account: mssql-restore-test@ti-is-devenv-01.iam.gserviceaccount.com
 #SET GOOGLE_APPLICATION_CREDENTIALS=C:\PHome\GCPSQLAutoIn\21a77830d937.json
 
+# Import the necessary packages
+from consolemenu import *
+from consolemenu.items import *
 import argparse
 from googleapiclient.discovery import build
 from google.auth import compute_engine
@@ -36,6 +39,7 @@ app = Flask(__name__)
 
 logger = logging.getLogger()
 project = ""
+projects = []
 instances = []
 
 #@app.before_first_request
@@ -50,77 +54,101 @@ instances = []
 #        )
 
 
-def menu():
-    global project
-    global instances
+def show_menu():
+    print ("\nMenu")
+    print ("-----------------")
+    print ("[1] Projects")
+    print ("[2] CloudSQLs")
+    print ("[3] Databases")
+    print ("[4] Users")
+    print ("[5] Export")
+    print ("[Q] Exit\n")
 
-    #menu()
-    options = {
-    "1":("Projects",cloudsqlprojects),
-    "2":("CloudSQL",cloudsql),
-    "3":("Databases",cloudsqldatabases),
-    "4":("Users",cloudsqlusers),
-    "5":("All",cloudsqlusers),
-    "6":("Quit",my_quit_fn)
-    }
+def menu(proj):
+    while True:
+        show_menu()
+        choice = input('Enter your choice: ').lower()
+        if choice == '1':
+            cloudsqlprojects()
+        elif choice == '2':
+            instances=cloudsqlinstances(proj)
+        elif choice == '3':
+            cloudsqldatabases(proj,instances)
+        elif choice == '4':
+            cloudsqlusers(proj,instances)
+        elif choice == 'q':
+            return
+        else:
+            print(f'Not a correct choice: <{choice}>, try again')
 
-    print("")
-
-    for key in sorted(options.keys()):
-        print (" " + key+":" + options[key][0])
-
+def cloudsqlprojects():
+    # Construct the service object for the interacting with the Cloud SQL Admin API.
+    computer = build('cloudresourcemanager', 'v1')
     print("\n")
-    ans = input("Make A Choice: ")
-    options.get(ans,[None,invalid])[1]()
+    projects = list_projects(computer)
 
-    menu()
+    dp = pd.DataFrame(projects)
+    toprint = dp.sort_values(by=['NAME'], ascending=False).reset_index(drop=True)
 
-def cloudsql():
-    global project
-    global instances
+    print("GCP Projects: \n")
+    print(toprint)
+    print("\n")
+    input("Press Enter to continue...")
+
+
+    return projects
+
+def cloudsqlinstances(proj):
     # Construct the service object for the interacting with the Cloud SQL Admin API.
     cloudsql = build('sqladmin','v1beta4')
-    instances = list_sql_instances(cloudsql, project)
-
-    #for dict in instances:
-    #    flat = flatten_json(dict)
-    #    print(pd.json_normalize(flat))
-
-    #print(pd.json_normalize(instances,'FLAGS',['NAME','PUBLIC','PRIVATE','VERSION','ZONE','BACKUPS','RETENTION']))
+    if not proj:
+        computer = build('cloudresourcemanager', 'v1')
+        projects = list_projects(computer)
+        for project in projects:
+            instances = list_sql_instances(cloudsql, project["NAME"])
+    else:
+        instances = list_sql_instances(cloudsql, proj)
 
     cs = pd.DataFrame(instances)
     if not cs.empty:
         print("\n")
-        print('CloudSQL Instances in project %s:' % (project))
+        print('CloudSQL Instances')#s in project %s:' % (project))
         print("\n")
-        print(cs.sort_values(by=['NAME'], ascending=False).reset_index(drop=True))
+        print(cs)
         print("\n")
 
     return instances
 
-def cloudsqldatabases():
-    global project
-    global instances
+def cloudsqldatabases(proj,intances):
 
     # Construct the service object for the interacting with the Cloud SQL Admin API.
     cloudsql = build('sqladmin','v1beta4')
 
     databases = []
-    for instance in instances:
-        databases = databases + list_sql_instance_databases(cloudsql,project,instance['NAME'])
+    if not proj:
+        computer = build('cloudresourcemanager', 'v1')
+        projects = list_projects(computer)
+        for project in projects:
+            instances = list_sql_instances(cloudsql, project["NAME"])
+
+    if instances:
+        for instance in instances:
+            databases = list_sql_instance_databases(cloudsql,proj,instance['NAME'])
+    else:
+        databases=["Empty"]
 
     dbs = pd.DataFrame(databases)
     if not dbs.empty:
         print("\n")
         print('Databases in project %s by Instance:' % (project))
         print("\n")
-        print(dbs.sort_values(by=['INSTANCE'], ascending=False).reset_index(drop=True))
+        print(dbs)
         print("\n")
+
     return databases
 
-def cloudsqlusers():
-    global project
-    global instances
+def cloudsqlusers(proj):
+
     # Construct the service object for the interacting with the Cloud SQL Admin API.
     cloudsql = build('sqladmin','v1beta4')
 
@@ -138,22 +166,24 @@ def cloudsqlusers():
 
     return users
 
-def cloudsqlprojects():
-    # Construct the service object for the interacting with the Cloud SQL Admin API.
-    computer = build('cloudresourcemanager', 'v1')
-    print("\n")
-    projects = list_projects(computer)
 
-    df = pd.DataFrame(projects)
-    toprint = df.sort_values(by=['NAME'], ascending=False).reset_index(drop=True)
+    # [START run]
+def main(proj):
 
-    print("GCP Projects: \n")
-    print(toprint)
-    print("\n")
+    # Finally, we call show to show the menu and allow the user to interact
+    menu(proj)
 
-    choice=input("Please choose a project name: ")
 
-    return(choice)
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument('--p', help='Your Google Cloud project ID.')
+
+    args = parser.parse_args()
+
+    main(args.p)
+    #main()
+# [END run]
+
 
 def my_quit_fn():
    raise SystemExit
@@ -161,41 +191,4 @@ def my_quit_fn():
 def invalid():
    print ("INVALID CHOICE!")
 
-# [START run]
-def main(proj, wait=True):
-
-    global project
-    project = proj
-
-    #credential = mycredential()
-
-    menu()
-
-    #sqlexec0 = readFileFromOS(getFileUrl("databases.sql","queries"))
-
-    #for row in db_Query(sqlexec0,'','ISJCruz',mysqlpsw):
-    #    do something
-    #if wait:
-    #    input()
-
-    #print('Listing Databases in each instance.')
-
-    #print("""
-#Database imported.
-#Once the Database is imported press enter to DELETE the instance.
-#""".format(project))
-
-#    if wait:
-#        input()
-
-#    print('Deleting CloudSQL instance.')
-
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument('project_id', help='Your Google Cloud project ID.')
-
-    args = parser.parse_args()
-
-    main(args.project_id)
-# [END run]
 #python main.py ti-is-devenv-01

@@ -51,7 +51,6 @@ def get_entity_fields(pentity):
 def list_sql_instances(cloudsql,projectname):
     req = cloudsql.instances().list(project=projectname)
     resp = req.execute()
-
     #print(glom(resp['items'][1],'name'))
 
     if 'error' not in resp:
@@ -62,65 +61,52 @@ def list_sql_instances(cloudsql,projectname):
             #print(instances)
             for key in cloudsql_fields:
                 sqlinstance[key[3]] = glom(instances,key[1],default='N/A')
-                #sqlinstance['state'] = instances['state']
-                #sqlinstance['databaseVersion'] = instances['databaseVersion']
-                #sqlinstance['region'] = instances['region']
-                #sqlinstance['gceZone'] = instances['gceZone']
-                ##sqlinstance['SELFLINK'] = instances['selfLink']
-                #sqlinstance['CONNECTION'] = instances['connectionName']
-                #sqlinstance['AVAILABILITY'] = instances['settings']['availabilityType']
-                #sqlinstance['BACKUP'] = instances['settings']['backupConfiguration']['enabled']
-                #sqlinstance['BRETENTION'] = instances['settings']['backupConfiguration']['backupRetentionSettings']['retainedBackups']
-                #sqlinstance['RECOVERY'] = instances['settings']['backupConfiguration']['binaryLogEnabled']
-                #sqlinstance['LRETENTION'] = instances['settings']['backupConfiguration']['transactionLogRetentionDays']
-                #for ips in instances['ipAddresses']:
-                #    if ips['type']=='PRIMARY':
-                #        sqlinstance['PRIMARY'] = ips['ipAddress']
-                #    if ips['type']=='PRIVATE':
-                #        sqlinstance['PRIVATE'] = ips['ipAddress']
             sqlinstances.append(sqlinstance)
-    #https://cloud.google.com/sql/docs/sqlserver/import-export/importing
-    #add_bucket_iam_member("dba-freenas","roles/storage.admin","serviceAccount:" + EmailAddress)
     return sqlinstances
 # [END list_sql_instances]
 
 
 # [START list_sql_instance_databases]
-def list_sql_instance_databases(cloudsql,projectName,instanceName):
+def list_sql_instance_databases(cloudsql,projectName='na',instanceName='na'):
     sqlDatabases = []
     try:
-        req = cloudsql.databases().list(project=projectName,instance=instanceName)
+        if instanceName=='na':
+            req = cloudsql.databases().list(project=projectName)
+        else:
+            req = cloudsql.databases().list(project=projectName,instance=instanceName)
+
         resp = req.execute()
-        #print (resp)
 
-        for databases in resp['items']:
-            if databases['name'] not in ['sys','mysql','information_schema','performance_schema']:
+        if 'error' not in resp:
+            databases_fields = get_entity_fields("cloudsql_databases")
+            for databases in resp['items']:
                 sqlDatabase = {}
-                sqlDatabase['INSTANCE'] = databases['instance']
-                sqlDatabase['DATABASE'] = databases['name']
+                #if databases['name'] not in ['sys','mysql','information_schema','performance_schema']:
+                #print(instances)
+                for key in databases_fields:
+                    sqlDatabase[key[3]] = glom(databases,key[1],default='N/A')
                 sqlDatabases.append(sqlDatabase)
-
     except Exception as error:
+        sqlDatabases="Error"
         return sqlDatabases
     return sqlDatabases
 # [END list_sql_instance_databases]
 
 # [START list_sql_instance_users]
 def list_sql_instance_users(cloudsql,projectName,instanceName):
-    sqlUsers = []
     try:
         req = cloudsql.users().list(project=projectName,instance=instanceName)
         resp = req.execute()
 
         if 'error' not in resp:
+            sqlUsers = []
+            users_fields = get_entity_fields("cloudsql_users")
             for users in resp['items']:
                 sqlUser = {}
-                sqlUser['INSTANCE'] = users['instance']
-                sqlUser['USERNAME'] = users['name']
-                sqlUser['HOST'] = users['host']
-                #sqlUser['DISABLED'] = users['sqlserverUserDetails']['disabled']
-                #sqlUser['ROLES'] = users['sqlserverUserDetails']['serverRoles']
-
+                #if databases['name'] not in ['sys','mysql','information_schema','performance_schema']:
+                #print(instances)
+                for key in users_fields:
+                    sqlUser[key[3]] = glom(users,key[1],default='N/A')
                 sqlUsers.append(sqlUser)
     except HttpError as err:
         return sqlUsers
@@ -161,7 +147,6 @@ def wait_for_operation(cloudsql, project, operation):
         time.sleep(1)
 # [END wait_for_operation]
 # wait_for_operation(cloudsql, "ti-is-devenv-01", operation)
-
 
 def flatten_json(y):
     out = {}
