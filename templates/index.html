@@ -15,7 +15,7 @@ limitations under the License.
 -->
 <html lang="en">
 <head>
-    <title>Telus International</title>
+    <title>Database Engineering</title>
     <link rel="stylesheet"
           href="https://cdnjs.cloudflare.com/ajax/libs/materialize/1.0.0/css/materialize.min.css">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
@@ -24,28 +24,55 @@ limitations under the License.
 <body>
 <nav class="red lighten-1">
     <div class="nav-wrapper">
-        <a href="#" class="brand-logo center">Global Database Inventory</a>
+        <a href="#" class="brand-logo center">My CloudSQL Collector</a>
     </div>
 </nav>
 <div class="section">
     <div class="center">
-        <h4>
-        </h4>
+        <h3>
+            Database Engineering Team
+        </h3>
+        <h5>
+            Powered by Telus
+        </h5>
     </div>
     <div class="row center">
         <div class="col s6 m5 offset-m1">
-
+            <div class="card-panel 'green lighten-3'">
+                <button id="Instances" class="btn green">My Instances</button>
+            </div>
         </div>
         <div class="col s6 m5">
-
+            <div class="card-panel 'blue lighten-3'">
+                <button id="DBsInternal" class="btn blue">DB Details</button>
+            </div>
+        </div>
+        <div class="col s6 m5 offset-m1">
+            <div class="card-panel 'green lighten-3'">
+                <button id="Databases" class="btn blue">My Databases</button>
+            </div>
+        </div>
+        <div class="col s6 m5">
+            <div class="card-panel 'blue lighten-3'">
+                <button id="DBsInternal" class="btn blue">DB Details</button>
+            </div>
+        </div>
+        <div class="col s6 m5 offset-m1">
+            <div class="card-panel 'green lighten-3'">
+                <button id="Users" class="btn green">My Users</button>
+            </div>
+        </div>
+        <div class="col s6 m5">
+            <div class="card-panel 'blue lighten-3'">
+                <button id="DBsInternal" class="btn blue">DB Details</button>
+            </div>
         </div>
     </div>
-    <h4 class="header center">Recent Votes</h4>
     <ul class="container collection center">
     </ul>
 </div>
 <script>
-    function vote(team) {
+    function vote(type) {
         var xhr = new XMLHttpRequest();
         xhr.onreadystatechange = function () {
             if (this.readyState == 4) {
@@ -56,14 +83,20 @@ limitations under the License.
         };
         xhr.open("POST", "/", true);
         xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-        xhr.send("team=" + team);
+        xhr.send("type=" + type);
     }
 
-    document.getElementById("voteTabs").addEventListener("click", function () {
-        vote("TABS");
+    document.getElementById("Instances").addEventListener("click", function () {
+        vote("INSTANCES");
     });
-    document.getElementById("voteSpaces").addEventListener("click", function () {
-        vote("SPACES");
+    document.getElementById("Databases").addEventListener("click", function () {
+        vote("DATABASES");
+    });
+    document.getElementById("Users").addEventListener("click", function () {
+        vote("USERS");
+    });
+    document.getElementById("DBsInternal").addEventListener("click", function () {
+        vote("DBSINTERNAL");
     });
 </script>
 </body>

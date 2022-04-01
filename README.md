@@ -1,2 +1,2 @@
-# GCPSQLAutoIn
-GCP CloudSQL Auto Inventory
+# CloudSQL Collector
+GCP CloudSQL Database Collector

@@ -7,6 +7,8 @@ from glom import glom
 from glom import SKIP
 import credential
 from credential import *
+import logging
+import ast
 
 # This global variable is declared with a value of `None`, instead of calling
 # `init_connection_engine()` immediately, to simplify testing. In general, it
@@ -15,6 +17,71 @@ from credential import *
 db = None
 # [START list_projects]
 # Permissions required: resourcemanager.projects.get
+logger = logging.getLogger()
+
+def get_variables():
+    mycredentials = mycredential()
+
+    variables = {}
+
+    variables["credential"] = mycredentials
+    variables['type'] = 'mysql'
+    variables['drivername'] = 'mysql+pymysql'
+    variables["db_user"] = os.environ["DB_USER"]
+    #variables["db_pass"] = ServiceT#os.environ["DB_PASS"]
+    variables["db_name"] = os.environ["DB_NAME"]
+    variables["cloud_sql_connection_name"] = os.environ["CLOUD_SQL_CONNECTION_NAME"]
+    variables["db_socket_dir"] = os.environ.get("DB_SOCKET_DIR", "/cloudsql")
+    variables["connectionstring"]={
+        "unix_socket": "{}/{}".format(
+            variables["db_socket_dir"],  # e.g. "/cloudsql"
+            variables["cloud_sql_connection_name"])  # i.e "<PROJECT-NAME>:<INSTANCE-REGION>:<INSTANCE-NAME>"
+    }
+    return variables
+
+def get_variables_dynamic(cloudsql,instance):
+
+    mycredentials = mycredential()
+
+    variables = {}
+
+    variables["credential"] = mycredentials
+    variables["pwd"] = "12345"
+    variables["cloud_sql_connection_name"] = instance['connectionName']
+    variables["db_socket_dir"] = "/cloudsql"
+    variables["project"] = instance['project']
+    variables["instanceName"] = instance['instance']
+    variables["port"] = "1433"
+    variables["host"] = instance['ip']
+    variables["db_list"] = list_sql_instance_databases(cloudsql,variables["project"],variables["instanceName"])
+
+    if instance['version'].find('MYSQL')>=0:
+        variables['type'] = 'mysql'
+        variables['drivername'] = 'mysql+pymysql'
+        variables["db_user"] = os.environ["DB_USER"]
+        variables["db_name"] = "INFORMATION_SCHEMA"
+        variables["connectionstring"]={
+            "unix_socket": "{}/{}".format(
+                variables["db_socket_dir"],  # e.g. "/cloudsql"
+                variables["cloud_sql_connection_name"])  # i.e "<PROJECT-NAME>:<INSTANCE-REGION>:<INSTANCE-NAME>"
+        }
+    elif instance['version'].find('POSTGRES')>=0:
+        variables['type'] = 'postgresql'
+        variables['drivername'] = 'postgresql+pg8000'
+        variables["db_user"] = 'dba-automate@ti-dba-devenv-01.iam'
+        variables["db_name"] = 'postgres'
+        variables["connectionstring"]={
+            "unix_sock": "{}/{}/.s.PGSQL.5432".format(
+                variables["db_socket_dir"],  # e.g. "/cloudsql"
+                variables["cloud_sql_connection_name"])  # i.e "<PROJECT-NAME>:<INSTANCE-REGION>:<INSTANCE-NAME>"
+        }
+    else:
+        variables['type'] = 'mssql'
+        variables['drivername'] = 'mssql+pytds'
+        variables["db_user"] = os.environ["DB_USER"]
+        variables["db_name"] = "testing"
+    return variables
+
 def list_projects(compute):
     request = compute.projects().list()
     response = request.execute()
@@ -30,10 +97,10 @@ def list_projects(compute):
     return projects
 # [END list_projects]
 
-def get_entity_fields(pentity):
+def get_entity_fields(variables,pentity):
     global db
-    mycredentials = mycredential()
-    db = db or init_connection_engine(mycredentials.token)
+
+    db = db or init_connection_engine(variables)
 
     fields = []
     with db.connect() as conn:
@@ -55,16 +122,24 @@ def list_sql_instances(cloudsql,projectname):
 
     if 'error' not in resp:
         sqlinstances = []
-        cloudsql_fields = get_entity_fields("cloudsql")
+        variables = get_variables()
+        cloudsql_fields = get_entity_fields(variables,"cloudsql")
         for instances in resp['items']:
             sqlinstance = {}
             #print(instances)
             for key in cloudsql_fields:
                 sqlinstance[key[3]] = glom(instances,key[1],default='N/A')
             sqlinstances.append(sqlinstance)
+
     return sqlinstances
 # [END list_sql_instances]
 
+def skipInstance(instance):
+    if 'activationPolicy' in instance:
+        if instance['activationPolicy'] != "NEVER":
+            return 0
+        else:
+            return 1
 
 # [START list_sql_instance_databases]
 def list_sql_instance_databases(cloudsql,projectName='na',instanceName='na'):
@@ -78,7 +153,8 @@ def list_sql_instance_databases(cloudsql,projectName='na',instanceName='na'):
         resp = req.execute()
 
         if 'error' not in resp:
-            databases_fields = get_entity_fields("cloudsql_databases")
+            variables = get_variables()
+            databases_fields = get_entity_fields(variables,"cloudsql_databases")
             for databases in resp['items']:
                 sqlDatabase = {}
                 #if databases['name'] not in ['sys','mysql','information_schema','performance_schema']:
@@ -87,19 +163,144 @@ def list_sql_instance_databases(cloudsql,projectName='na',instanceName='na'):
                     sqlDatabase[key[3]] = glom(databases,key[1],default='N/A')
                 sqlDatabases.append(sqlDatabase)
     except Exception as error:
-        sqlDatabases="Error"
+        variables = get_variables()
+        databases_fields = get_entity_fields(variables,"cloudsql_databases")
+        sqlDatabase = {}
+        for key in databases_fields:
+            sqlDatabase[key[3]] = 'N/A'
+        sqlDatabases.append(sqlDatabase)
         return sqlDatabases
     return sqlDatabases
 # [END list_sql_instance_databases]
 
+def get_entity_query(variables):
+    global db
+    db = db or init_connection_engine(variables)
+
+    query = []
+    with db.connect() as conn:
+        stmt = sqlalchemy.text(
+            "SELECT query,fields FROM metadatadb WHERE entity=:entity and status = 1"
+        )
+        # Execute the query and fetch all results
+        entity_query = conn.execute(stmt,entity=variables['type']).fetchall()
+        # Convert the results into a list of dicts representing votes
+        for row in entity_query:
+            query.append(row)
+    return query
+
+def get_database(variables):
+    fields = ast.literal_eval(variables['query'][0][1])
+
+    database = []
+    if variables["type"]=='mysql':
+        db = None
+        db = db or init_connection_engine(variables)
+        with db.connect() as conn:
+            stmt = sqlalchemy.text(
+                variables['query'][0][0]
+            )
+            # Execute the query and fetch all results
+            entity_query = conn.execute(stmt).fetchall()
+            # Convert the results into a list of dicts representing databases
+            for row in entity_query:
+                sqlDatabase = {}
+                sqlDatabase['project'] = variables["project"]
+                sqlDatabase['instance'] = variables["instanceName"]
+                for field in range(0,len(fields)):
+                    sqlDatabase[fields[field]] = row[fields[field]]
+                database.append(sqlDatabase)
+    else:
+        for db in variables["db_list"]:
+            variables["db_name"] = db["database"]
+            if variables["db_name"] != 'master' and variables["db_name"] != 'model' and variables["db_name"] != 'msdb' and variables["db_name"] != 'tempdb':
+                db = None
+                db = db or init_connection_engine(variables)
+
+                with db.connect() as conn:
+                    stmt = sqlalchemy.text(
+                        variables['query'][0][0]
+                    )
+                    # Execute the query and fetch all results
+                    entity_query = conn.execute(stmt).fetchall()
+                    # Convert the results into a list of dicts representing databases
+                    for row in entity_query:
+                        sqlDatabase = {}
+                        sqlDatabase['project'] = variables["project"]
+                        sqlDatabase['instance'] = variables["instanceName"]
+                        sqlDatabase['TABLE_SCHEMA'] = variables["db_name"]
+                        for field in range(0,len(fields)):
+                            sqlDatabase[fields[field]] = row[fields[field]]
+                        database.append(sqlDatabase)
+    return database
+
+# [START list_sql_instance_databases]
+def list_sql_databases(cloudsql,instance):
+    sqlDatabases = []
+    resp = []
+    try:
+        variables = get_variables_dynamic(cloudsql,instance)
+        variables['query'] = get_entity_query(variables)
+        resp = get_database(variables)
+    #for tables in resp:
+    #    sqlDatabase = {}
+        #if databases['name'] not in ['sys','mysql','information_schema','performance_schema']:
+        #print(instances)
+    #    for fields in tables:
+    #        sqlDatabase[fields[0]] = glom(databases,fields[1],default='N/A')
+    #    sqlDatabases.append(resp)
+    except Exception as error:
+        logger.warning("Instance " + instance['connectionName'] + " was not available or resulset is empty")
+        return sqlDatabases
+    return resp
+# [END list_sql_instance_databases]
+
 # [START list_sql_instance_users]
 def list_sql_instance_users(cloudsql,projectName,instanceName):
+    sqlUsers = []
     try:
-        req = cloudsql.users().list(project=projectName,instance=instanceName)
+        if instanceName=='na':
+            req = cloudsql.users().list(project=projectName)
+
+        else:
+            req = cloudsql.users().list(project=projectName,instance=instanceName)
+
         resp = req.execute()
 
         if 'error' not in resp:
-            sqlUsers = []
+            variables = get_variables()
+            users_fields = get_entity_fields(variables,"cloudsql_users")
+            for users in resp['items']:
+                sqlUser = {}
+                #if databases['name'] not in ['sys','mysql','information_schema','performance_schema']:
+                #print(instances)
+                for key in users_fields:
+                    sqlUser[key[3]] = glom(users,key[1],default='N/A')
+                sqlUsers.append(sqlUser)
+    except Exception as error:
+        variables = get_variables()
+        users_fields = get_entity_fields(variables,"cloudsql_users")
+        sqlUser = {}
+        for key in users_fields:
+            sqlUser[key[3]] = 'N/A'
+        sqlUsers.append(sqlUser)
+        return sqlUsers
+    return sqlUsers
+# [END list_sql_instance_users]
+
+# [START list_sql_instance_users]
+def list_sql_instance_grants(cloudsql,projectName,instanceName):
+    sqlUsers = []
+    try:
+        if instanceName=='na':
+            req = cloudsql.users().list(project=projectName)
+
+        else:
+            req = cloudsql.users().list(project=projectName,instance=instanceName)
+
+        resp = req.execute()
+
+        if 'error' not in resp:
             users_fields = get_entity_fields("cloudsql_users")
             for users in resp['items']:
                 sqlUser = {}
@@ -108,7 +309,12 @@ def list_sql_instance_users(cloudsql,projectName,instanceName):
                 for key in users_fields:
                     sqlUser[key[3]] = glom(users,key[1],default='N/A')
                 sqlUsers.append(sqlUser)
-    except HttpError as err:
+    except Exception as error:
+        databases_fields = get_entity_fields("cloudsql_users")
+        sqlUser = {}
+        for key in databases_fields:
+            sqlUser[key[3]] = 'N/A'
+        sqlUsers.append(sqlUser)
         return sqlUsers
     return sqlUsers
 # [END list_sql_instance_users]

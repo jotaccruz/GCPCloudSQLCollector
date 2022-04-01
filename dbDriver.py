@@ -6,8 +6,14 @@ Python 3.8
 """
 import sqlalchemy
 import os
+import logging
+import pyodbc
+import sqlalchemy_pytds
 
-def init_connection_engine(ServiceT):
+logger = logging.getLogger()
+
+def init_connection_engine(variables):
+    #print(ServiceT)
     db_config = {
         # [START cloud_sql_mysql_sqlalchemy_limit]
         # Pool size is the maximum number of permanent connections to keep.
@@ -40,18 +46,21 @@ def init_connection_engine(ServiceT):
     }
 
     if os.environ.get("DB_HOST"):
-        return init_tcp_connection_engine(db_config,ServiceT)
+        return init_tcp_connection_engine(db_config,variables)
     else:
-        return init_unix_connection_engine(db_config,ServiceT)
+        if variables["type"]=='mssql':
+            return tcp_connection_engine(db_config,variables)
+        else:
+            return init_unix_connection_engine(db_config,variables)
 
 
-def init_tcp_connection_engine(db_config,ServiceT):
+def init_tcp_connection_engine(db_config,variables):
     # [START cloud_sql_mysql_sqlalchemy_create_tcp]
     # Remember - storing secrets in plaintext is potentially unsafe. Consider using
     # something like https://cloud.google.com/secret-manager/docs/overview to help keep
     # secrets secret.
     db_user = os.environ["DB_USER"]
-    db_pass = ServiceT #os.environ["DB_PASS"]
+    db_pass = variables["credential"].token#os.environ["DB_PASS"]
     db_name = os.environ["DB_NAME"]
     db_host = os.environ["DB_HOST"]
 
@@ -78,34 +87,44 @@ def init_tcp_connection_engine(db_config,ServiceT):
     return pool
 
 
-def init_unix_connection_engine(db_config,ServiceT):
+def init_unix_connection_engine(db_config,variables):
     # [START cloud_sql_mysql_sqlalchemy_create_socket]
     # Remember - storing secrets in plaintext is potentially unsafe. Consider using
     # something like https://cloud.google.com/secret-manager/docs/overview to help keep
     # secrets secret.
 
-    db_user = os.environ["DB_USER"]
-    db_pass = ServiceT #os.environ["DB_PASS"]
-    db_name = os.environ["DB_NAME"]
-    db_socket_dir = os.environ.get("DB_SOCKET_DIR", "/cloudsql")
-    cloud_sql_connection_name = os.environ["CLOUD_SQL_CONNECTION_NAME"]
-
     pool = sqlalchemy.create_engine(
         # Equivalent URL:
         # mysql+pymysql://<db_user>:<db_pass>@/<db_name>?unix_socket=<socket_path>/<cloud_sql_instance_name>
         sqlalchemy.engine.url.URL.create(
-            drivername="mysql+pymysql",
-            username=db_user,  # e.g. "my-database-user"
-            password=db_pass,  # e.g. "my-database-password"
-            database=db_name,  # e.g. "my-database-name"
-            query={
-                "unix_socket": "{}/{}".format(
-                    db_socket_dir,  # e.g. "/cloudsql"
-                    cloud_sql_connection_name)  # i.e "<PROJECT-NAME>:<INSTANCE-REGION>:<INSTANCE-NAME>"
-            }
+            drivername = variables["drivername"],
+            username = variables["db_user"],  # e.g. "my-database-user"
+            password = variables["credential"].token,  # e.g. "my-database-password"
+            database = variables["db_name"],  # e.g. "my-database-name"
+            query = variables["connectionstring"]
         ),
         **db_config
     )
     # [END cloud_sql_mysql_sqlalchemy_create_socket]
+
+    return pool
+
+def tcp_connection_engine(db_config,variables):
+    pool = sqlalchemy.create_engine(
+        # Equivalent URL:
+        # mysql+pymysql://<db_user>:<db_pass>@<db_host>:<db_port>/<db_name>
+        sqlalchemy.engine.url.URL.create(
+            drivername = variables["drivername"],
+            username = variables["db_user"],  # e.g. "my-database-user"
+            password = variables["pwd"],  # e.g. "my-database-password"
+            database = variables["db_name"],  # e.g. "my-database-name"
+            host = variables["host"],
+            port = variables["port"],
+            #query = variables["connectionstring"]
+        ),
+        **db_config
+    )
+
+    # [END cloud_sql_mysql_sqlalchemy_create_tcp]
 
     return pool

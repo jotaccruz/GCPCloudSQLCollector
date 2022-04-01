@@ -21,7 +21,7 @@ def mycredential():
     auth_req = Request()
     credentials.refresh(auth_req)
 
-    with open('token.json', 'w') as token:
-        token.write(credentials.token)
+    #with open('token.json', 'w') as token:
+    #    token.write(credentials.token)
 
     return credentials
