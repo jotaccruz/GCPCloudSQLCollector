@@ -1,3 +1,5 @@
+# Function dependencies, for example:
+# package>=version
 cachetools==4.2.2
 certifi==2021.5.30
 chardet==4.0.0
