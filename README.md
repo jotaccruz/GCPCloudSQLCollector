@@ -1,5 +1,12 @@
 # CloudSQL Collector
-GCP CloudSQL Database Collector
+GCP CloudSQL Database Collector is usefull if you need to collect this information from your CloudSQL Instances:<br><br>
+<b>GCP Level</b><br>
+1. CloudSQL Instances Running<br>
+2. List of Users<br>
+3. List of Databases<br>
+<b>CloudSQL Instance Inside</b><br>
+1. List of Users<br>
+2. List of Users's permission<br>
 
 <b>Runtime:</b> Python 3.9 <br>
 <b>Entry point:</b> CloudSQLCollector
