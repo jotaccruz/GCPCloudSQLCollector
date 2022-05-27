@@ -43,8 +43,9 @@ def CloudSQLCollector(arg1,arg2):
     computer = build('cloudresourcemanager', 'v1')
     projects = list_projects(computer)
 
+    instances = []
     for project in projects:
-        instances = cloudsqlinstances(project['NAME'])
+        instances = instances + cloudsqlinstances(project['NAME'])
         instance_df = pd.DataFrame(instances)
         # text buffer
         s_buf = io.StringIO()
@@ -53,44 +54,40 @@ def CloudSQLCollector(arg1,arg2):
         s_buf.seek(0)
         bucket(s_buf,'instances.csv')
 
-    for project in projects:
-        instances = cloudsqlinstances(project['NAME'])
-        databases = cloudsqldatabases(instances)
-        instance_df = pd.DataFrame(instances)
-        databases_df = pd.DataFrame(databases)
-        databases_final_df = pd.merge(instance_df, databases_df, on=['project','instance'])
-        # text buffer
-        s_buf = io.StringIO()
-        # saving a data frame to a buffer (same as with a regular file):
-        databases_final_df.to_csv(s_buf)
-        s_buf.seek(0)
-        bucket(s_buf,'databases.csv')
+#    for project in projects:
+    databases = cloudsqldatabases(instances)
+    instance_df = pd.DataFrame(instances)
+    databases_df = pd.DataFrame(databases)
+    databases_final_df = pd.merge(instance_df, databases_df, on=['project','instance'])
+    # text buffer
+    s_buf = io.StringIO()
+    # saving a data frame to a buffer (same as with a regular file):
+    databases_final_df.to_csv(s_buf)
+    s_buf.seek(0)
+    bucket(s_buf,'databases.csv')
 
-    for project in projects:
-        instances = cloudsqlinstances(project['NAME'])
-        users = cloudsqlusers(project['NAME'],instances)
-        instance_df = pd.DataFrame(instances)
-        users_df = pd.DataFrame(users)
-        users_final_df = pd.merge(instance_df, users_df, on=['project','instance'])
-        # text buffer
-        s_buf = io.StringIO()
-        # saving a data frame to a buffer (same as with a regular file):
-        users_final_df.to_csv(s_buf)
-        s_buf.seek(0)
-        bucket(s_buf,'users.csv')
+#    for project in projects:
+    users = cloudsqlusers(instances)
+    instance_df = pd.DataFrame(instances)
+    users_df = pd.DataFrame(users)
+    users_final_df = pd.merge(instance_df, users_df, on=['project','instance'])
+    # text buffer
+    s_buf = io.StringIO()
+    # saving a data frame to a buffer (same as with a regular file):
+    users_final_df.to_csv(s_buf)
+    s_buf.seek(0)
+    bucket(s_buf,'users.csv')
 
-    for project in projects:
-        instances = cloudsqlinstances(project['NAME'])
-        databases = cloudsqldatabases2(instances)
-        instance_df = pd.DataFrame(instances)
-        databases_df = pd.DataFrame(databases)
-        databases_final_df = pd.merge(instance_df, databases_df, on=['project','instance'])
-        # text buffer
-        s_buf = io.StringIO()
-        # saving a data frame to a buffer (same as with a regular file):
-        databases_final_df.to_csv(s_buf)
-        s_buf.seek(0)
-        bucket(s_buf,'db_inside.csv')
+    databases = cloudsqldatabases2(instances)
+    instance_df = pd.DataFrame(instances)
+    databases_df = pd.DataFrame(databases)
+    databases_final_df = pd.merge(instance_df, databases_df, on=['project','instance'])
+    # text buffer
+    s_buf = io.StringIO()
+    # saving a data frame to a buffer (same as with a regular file):
+    databases_final_df.to_csv(s_buf)
+    s_buf.seek(0)
+    bucket(s_buf,'db_inside.csv')
 
 
     #for project in projects:
@@ -145,14 +142,14 @@ def cloudsqldatabases(instances):
 
     return databases
 
-def cloudsqlusers(proj,instances):
+def cloudsqlusers(instances):
 
     # Construct the service object for the interacting with the Cloud SQL Admin API.
     cloudsql = build('sqladmin','v1beta4')
 
     users = []
     for instance in instances:
-        users = users + list_sql_instance_users(cloudsql,proj,instance['instance'])
+        users = users + list_sql_instance_users(cloudsql,instance['project'],instance['instance'])
 
     return users
 

@@ -79,7 +79,7 @@ def get_variables_dynamic(cloudsql,instance):
         variables['type'] = 'mssql'
         variables['drivername'] = 'mssql+pytds'
         variables["db_user"] = os.environ["DB_USER"]
-        variables["db_name"] = "testing"
+        variables["db_name"] = "master"
     return variables
 
 def list_projects(compute):
