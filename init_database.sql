@@ -10,9 +10,11 @@ INSERT INTO metadataapi VALUES ('cloudsql','databaseVersion','databaseVersion','
 INSERT INTO metadataapi VALUES ('cloudsql','region','region','region',1,4);
 INSERT INTO metadataapi VALUES ('cloudsql','Settings.replicationType','replicationType','REPLICA',0,2);
 INSERT INTO metadataapi VALUES ('cloudsql','ipAddresses.0.ipAddress','ipAddress','ip',1,5);
-INSERT INTO metadataapi VALUES ('cloudsql','ipAddresses.1.ipAddress','ipAddress','ip2',1,6);
-INSERT INTO metadataapi VALUES ('cloudsql','connectionName','connectionName','connectionName',1,7);
-INSERT INTO metadataapi VALUES ('cloudsql','settings.activationPolicy','activationPolicy','activationPolicy',1,8);
+INSERT INTO metadataapi VALUES ('cloudsql','ipAddresses.0.type','type','ip_type',1,6);
+INSERT INTO metadataapi VALUES ('cloudsql','ipAddresses.1.ipAddress','ipAddress','ip2',1,7);
+INSERT INTO metadataapi VALUES ('cloudsql','ipAddresses.1.type','type','ip2_type',1,8);
+INSERT INTO metadataapi VALUES ('cloudsql','connectionName','connectionName','connectionName',1,9);
+INSERT INTO metadataapi VALUES ('cloudsql','settings.activationPolicy','activationPolicy','activationPolicy',1,9);
 
 
 INSERT INTO metadataapi VALUES ('cloudsql_databases','project','project','project',1,7);
